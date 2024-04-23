@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(locobot_learning)
+project(SpheroHunter)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -8,9 +8,10 @@ project(locobot_learning)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  cv_bridge
   geometry_msgs
-  roscpp
   rospy
+  sensor_msgs
   std_msgs
   std_srvs
   message_generation
@@ -50,31 +51,17 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+add_message_files(
+  FILES
+  Tracker.msg
+)
 
 ## Generate services in the 'srv' folder
-add_service_files(
-  FILES
-  GraspPose.srv
-  Approach.srv
-  Grasp.srv
-  Place.srv
-  GazeboObservation.srv
-  At.srv
-  Contain.srv
-  Facing.srv
-  Hold.srv
-  PrimitiveBase.srv
-  AlignRobot.srv
-  GraspObject.srv
-  DropObject.srv
-  DropObjectAside.srv
-
-)
+# add_service_files(
+#   FILES
+#   Service1.srv
+#   Service2.srv
+# )
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -86,9 +73,7 @@ add_service_files(
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
   DEPENDENCIES
-  geometry_msgs 
   std_msgs
-  std_srvs
 )
 
 ################################################
@@ -121,11 +106,9 @@ generate_messages(
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-  
 #  INCLUDE_DIRS include
-#  LIBRARIES robot_custom
-   CATKIN_DEPENDS message_runtime rospy std_msgs std_srvs geometry_msgs
-#  CATKIN_DEPENDS geometry_msgs roscpp rospy std_msgs std_srvs
+#  LIBRARIES SpheroHunter
+  CATKIN_DEPENDS cv_bridge geometry_msgs opencv2 rospy sensor_msgs std_msgsstd_srvs message_runtime
 #  DEPENDS system_lib
 )
 
@@ -142,7 +125,7 @@ include_directories(
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/robot_custom.cpp
+#   src/${PROJECT_NAME}/SpheroHunter.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -153,7 +136,7 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/robot_custom_node.cpp)
+# add_executable(${PROJECT_NAME}_node src/SpheroHunter_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -177,24 +160,12 @@ include_directories(
 # all install targets should use catkin DESTINATION variables
 # See http://ros.org/doc/api/catkin/html/adv_user_guide/variables.html
 
-# Mark executable scripts (Python etc.) for installation
-# in contrast to setup.py, you can choose the destination
+## Mark executable scripts (Python etc.) for installation
+## in contrast to setup.py, you can choose the destination
 # catkin_install_python(PROGRAMS
 #   scripts/my_python_script
 #   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 # )
-catkin_install_python(PROGRAMS 
-  scripts/executor/grasp_pose_server.py
-  scripts/executor/approach_server.py scripts/executor/tests/test_approach.py
-  scripts/executor/grasp_server.py scripts/executor/tests/test_grasp.py
-  scripts/executor/universal_move_arm.py
-  scripts/executor/place_server.py scripts/executor/tests/test_place.py
-  scripts/executor/primitive_move_base_server.py scripts/executor/tests/test_primitive.py
-  scripts/environment/observation_server_gazebo.py scripts/environment/tests/test_observation_gazebo_client.py
-  scripts/environment/predicate_services/at.py scripts/environment/predicate_services/contain.py
-  scripts/environment/predicate_services/facing.py
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
 
 ## Mark executables for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_executables.html
@@ -229,7 +200,7 @@ catkin_install_python(PROGRAMS
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_robot_custom.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_SpheroHunter.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()

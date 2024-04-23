@@ -1,4 +1,4 @@
-##Hide-and-seek with Sphero
+## Hide-and-seek with Sphero
 
 To Run Sphero:
 python3 sphero.py
