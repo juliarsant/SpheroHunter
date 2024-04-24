@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import cv2
 import numpy as np
+from typing import Union
 
 import time
 
@@ -36,7 +37,7 @@ class ObjectOrientationCalculator:
         yaw = np.arctan2(direction_vector[0], direction_vector[1])
         return pitch, yaw
 
-    def process(self, color_image: np.ndarray, depth_image: np.ndarray):
+    def process(self, color_image: Union[np.ndarray, None], depth_image: Union[np.ndarray, None]):
         if color_image is None or depth_image is None:
             return 0, 0
         # print(self.color_image)
@@ -58,12 +59,8 @@ class ObjectOrientationCalculator:
         mask = cv2.inRange(color_image, lower_bound, upper_bound)
         # np.set_printoptions(threshold=np.inf, linewidth=np.inf)
         # print(mask)
-        print("Mask shape:")
-        print(mask.shape)
-        print("Colored image shape:")
-        print(color_image.shape)
         cv2.imshow('colored', color_image)
-        cv2.imshow('mask', cv2.bitwise_and(color_image, color_image, mask = mask))
+        cv2.imshow('masked image', cv2.bitwise_and(color_image, color_image, mask = mask))
         if np.count_nonzero(mask) == 0:
             print("Empty mask; Sphero not found")
             return None
