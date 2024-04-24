@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 import rospy
-import cv2
-import numpy as np
 
 # ROS Libraries
 from sensor_msgs.msg import Image

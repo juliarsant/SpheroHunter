@@ -9,8 +9,9 @@ class ObjectOrientationCalculator:
     def __init__(self):
         self.color_image = None
         self.depth_image = None
-        self.robot_position = (0, 0, 0)  # Default position
-        self.sphero_located = False
+        self.robot_position = (0, 0, 0)
+        self.mask_lower_bound = [0, 0, 0]
+        self.mask_upper_bound = [255, 255, 255]
 
     def get_object_position(self, mask: np.ndarray, depth_image: np.ndarray):
         print("Mask (# nunzero pixels):")
@@ -40,10 +41,6 @@ class ObjectOrientationCalculator:
     def process(self, color_image: Union[np.ndarray, None], depth_image: Union[np.ndarray, None]):
         if color_image is None or depth_image is None:
             return 0, 0
-        # print(self.color_image)
-
-        print("depth image shape:")
-        print(depth_image.shape)
 
         # cv2.imwrite("img.jpg", self.color_image)
         
@@ -54,19 +51,16 @@ class ObjectOrientationCalculator:
         # # Segment the object based on its color
         # lower_bound = np.array([255, 77, 0])  # Adjust these values
         # upper_bound = np.array([255, 196, 0])  # Adjust these values
-        lower_bound = np.array([0, 0, 0])  # Adjust these values
-        upper_bound = np.array([255, 255, 255])  # Adjust these values
+        lower_bound = np.array(self.mask_lower_bound)  # Adjust these values
+        upper_bound = np.array(self.mask_upper_bound)  # Adjust these values
         mask = cv2.inRange(color_image, lower_bound, upper_bound)
         # np.set_printoptions(threshold=np.inf, linewidth=np.inf)
-        # print(mask)
         cv2.imshow('colored', color_image)
         cv2.imshow('masked image', cv2.bitwise_and(color_image, color_image, mask = mask))
         if np.count_nonzero(mask) == 0:
             print("Empty mask; Sphero not found")
             return None
 
-
-        return None
         object_position = self.get_object_position(mask, depth_image)
         if object_position is None:
             return 0, 0
