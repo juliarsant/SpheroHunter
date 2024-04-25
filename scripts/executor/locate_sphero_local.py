@@ -45,7 +45,7 @@ if __name__ == "__main__":
             
     if mask_upper_bound is not None:
         upper_bound: List[int] = [int(num) for num in re.split(r'\s*,\s*', mask_upper_bound.strip())]
-        if len([n for n in lower_bound if math.isnan(n) or n < 0 or n > 255]) > 0:
+        if len([n for n in upper_bound if math.isnan(n) or n < 0 or n > 255]) > 0:
             raise Exception(f"{mask_upper_bound} is not a valid color string")
         else:
             print("setting mask upper bound to", upper_bound)

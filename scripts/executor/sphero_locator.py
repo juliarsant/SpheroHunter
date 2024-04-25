@@ -10,8 +10,8 @@ class ObjectOrientationCalculator:
         self.color_image = None
         self.depth_image = None
         self.robot_position = (0, 0, 0)
-        self.mask_lower_bound = [0, 0, 0]
-        self.mask_upper_bound = [255, 255, 255]
+        self.mask_lower_bound = [0, 65, 166]
+        self.mask_upper_bound = [40, 120, 219]
 
     def get_object_position(self, mask: np.ndarray, depth_image: np.ndarray):
         print("Mask (# nunzero pixels):")
@@ -55,8 +55,11 @@ class ObjectOrientationCalculator:
         upper_bound = np.array(self.mask_upper_bound)  # Adjust these values
         mask = cv2.inRange(color_image, lower_bound, upper_bound)
         # np.set_printoptions(threshold=np.inf, linewidth=np.inf)
-        cv2.imshow('colored', color_image)
-        cv2.imshow('masked image', cv2.bitwise_and(color_image, color_image, mask = mask))
+        masked_image = cv2.bitwise_and(color_image, color_image, mask = mask)
+        combined = np.hstack([color_image, masked_image])
+        # cv2.imshow('colored', color_image)
+        # cv2.imshow('masked image', masked_image)
+        cv2.imshow('image', combined)
         if np.count_nonzero(mask) == 0:
             print("Empty mask; Sphero not found")
             return None
