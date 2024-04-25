@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 import cv2
 import numpy as np
-from typing import Union
+from typing import Union, Tuple
 
-import time
 
 class ObjectOrientationCalculator:
     def __init__(self):
         self.color_image = None
         self.depth_image = None
         self.robot_position = (0, 0, 0)
-        self.mask_lower_bound = [0, 65, 166]
-        self.mask_upper_bound = [40, 120, 219]
+        self.mask_lower_bound: Tuple[int, int, int] = (0, 65, 166)
+        self.mask_upper_bound: Tuple[int, int, int] = (40, 120, 219)
+        self.use_hsv: bool = False
 
     def get_object_position(self, mask: np.ndarray, depth_image: np.ndarray):
         print("Mask (# nunzero pixels):")
@@ -41,6 +41,9 @@ class ObjectOrientationCalculator:
     def process(self, color_image: Union[np.ndarray, None], depth_image: Union[np.ndarray, None]):
         if color_image is None or depth_image is None:
             return 0, 0
+        
+        if self.use_hsv:
+            color_image = cv2.cvtColor(color_image, cv2.COLOR_BGR2HSV)
 
         # cv2.imwrite("img.jpg", self.color_image)
         
@@ -57,6 +60,8 @@ class ObjectOrientationCalculator:
         # np.set_printoptions(threshold=np.inf, linewidth=np.inf)
         masked_image = cv2.bitwise_and(color_image, color_image, mask = mask)
         combined = np.hstack([color_image, masked_image])
+        if self.use_hsv:
+            combined = cv2.cvtColor(combined, cv2.COLOR_HSV2BGR)
         # cv2.imshow('colored', color_image)
         # cv2.imshow('masked image', masked_image)
         cv2.imshow('image', combined)
