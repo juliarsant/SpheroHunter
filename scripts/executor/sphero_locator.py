@@ -18,11 +18,17 @@ class ObjectOrientationCalculator:
         # np.set_printoptions(threshold=np.inf, linewidth=np.inf)
         print(np.count_nonzero(mask))
         # Assuming mask is a binary image of the segmented object
+        # contours = cv2.findContours(mask, mode=cv2.RETR_EXTERNAL, method=cv2.CHAIN_APPROX_NONE)
+        # # print("Contours:")
+        # # print(contours)
+        # largestContour = max(contours, key=cv2.contourArea)
+        # print("Largest contour:")
+        # print(largestContour)
         moments = cv2.moments(mask)
-        print("moments:")
-        print(moments)
+        # print("moments:")
+        # print(moments)
         if moments['m00'] == 0.0:
-            print("NO MOMENTS FOUND")
+            # print("NO MOMENTS FOUND")
             return None
         cx = int(moments['m10'] / moments['m00'])
         cy = int(moments['m01'] / moments['m00'])
@@ -30,12 +36,15 @@ class ObjectOrientationCalculator:
         # Get depth at the centroid
         z = depth_image[cy, cx]
         print("depth of centroid:", z)
+        print(f"x: {cx}    y: {cy}    z: {z}")
         return (cx, cy, z)
 
     def calculate_relative_orientation(self, object_position):
         direction_vector = np.subtract(object_position, self.robot_position)
         pitch = np.arctan2(direction_vector[2], direction_vector[1])
         yaw = np.arctan2(direction_vector[0], direction_vector[1])
+        # print(f"Pitch: {pitch}")
+        # print(f"Yaw: {yaw}")
         return pitch, yaw
 
     def process(self, color_image: Union[np.ndarray, None], depth_image: Union[np.ndarray, None]):
@@ -58,13 +67,13 @@ class ObjectOrientationCalculator:
         upper_bound = np.array(self.mask_upper_bound)  # Adjust these values
         mask = cv2.inRange(color_image, lower_bound, upper_bound)
         # np.set_printoptions(threshold=np.inf, linewidth=np.inf)
-        masked_image = cv2.bitwise_and(color_image, color_image, mask = mask)
-        combined = np.hstack([color_image, masked_image])
-        if self.use_hsv:
-            combined = cv2.cvtColor(combined, cv2.COLOR_HSV2BGR)
-        # cv2.imshow('colored', color_image)
-        # cv2.imshow('masked image', masked_image)
-        cv2.imshow('image', combined)
+        # masked_image = cv2.bitwise_and(color_image, color_image, mask = mask)
+        # combined = np.hstack([color_image, masked_image])
+        # if self.use_hsv:
+        #     combined = cv2.cvtColor(combined, cv2.COLOR_HSV2BGR)
+        # # cv2.imshow('colored', color_image)
+        # # cv2.imshow('masked image', masked_image)
+        # cv2.imshow('image', combined)
         if np.count_nonzero(mask) == 0:
             print("Empty mask; Sphero not found")
             return None

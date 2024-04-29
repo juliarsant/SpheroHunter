@@ -7,6 +7,8 @@ from geometry_msgs.msg import PoseStamped
 from cv_bridge import CvBridge, CvBridgeError
 from SpheroHunter.msg import Tracker
 import time
+import cv2
+import numpy as np
 
 from sphero_locator import ObjectOrientationCalculator
 
@@ -48,11 +50,20 @@ if __name__ == "__main__":
     start_time = time.time()
     display = False
     calculator = ObjectOrientationCalculator()
+    calculator.mask_lower_bound = (5, 50, 50)
+    calculator.mask_upper_bound = (15, 255, 255)
+    calculator.use_hsv = True
     while not rospy.is_shutdown():
         if time.time() - start_time > 5:
             display = True
         
         if display:
+            # if locator.color_image is not None:
+            #     cv2.imwrite("img_sphero_offset.jpg", locator.color_image)
+            # if locator.depth_image is not None:
+            #     np.savetxt("img_sphero_offset_depth.txt", locator.depth_image)
+            
+            # exit()
             result = calculator.process(
                 color_image=locator.color_image,
                 depth_image=locator.depth_image

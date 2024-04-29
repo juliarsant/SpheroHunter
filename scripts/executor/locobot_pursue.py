@@ -24,7 +24,21 @@ def initialize_ros_node():
         exit(1)
 
 def sanitize_quaternion_for_2d_navigation(orientation):
-    q_x = orientation.xlocobot_learning
+    q_x = orientation.x
+    q_y = orientation.y
+    q_z = orientation.z
+    q_w = orientation.w
+    
+    yaw = math.atan2(2.0 * (q_w * q_z + q_x * q_y), 1.0 - 2.0 * (q_y * q_y + q_z * q_z))
+    
+    orientation.w = math.cos(yaw / 2.0)
+    orientation.z = math.sin(yaw / 2.0)
+    orientation.x = 0.0
+    orientation.y = 0.0
+    
+    return orientation
+
+
 def send_goal(goal_name: str):
     # Call the service to clear costmaps
     rospy.wait_for_service('/locobot/move_base/clear_costmaps')
