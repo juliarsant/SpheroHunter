@@ -64,8 +64,8 @@ if not (args.mask_lower or args.mask_upper):
 if (args.mask_lower or args.mask_upper) and (args.hsv_lower or args.hsv_upper):
     raise Exception("Cannot specify both BGR and HSV lower/upper mask colors")
 
-color_image = cv2.imread("img.jpg")
-depth_image = np.loadtxt("depth.txt")
+color_image = cv2.imread("img_sphero_offset.jpg")
+depth_image = np.loadtxt("img_sphero_offset_depth.txt")
 calculator = ObjectOrientationCalculator()
 if args.mask_lower or args.mask_upper:
     mask_lower_bound = args.mask_lower
