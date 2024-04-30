@@ -2,7 +2,12 @@
 import cv2
 import numpy as np
 from typing import Union, Tuple
-
+import pyrealsense2
+from visualization_msgs.msg import Marker
+import tf2_ros
+from geometry_msgs.msg import PoseStamped, Pose, Point, Quaternion, PointStamped
+import tf2_geometry_msgs #his helps in the tf2 transform error and exception
+import rospy
 
 class ObjectOrientationCalculator:
     def __init__(self):
@@ -12,6 +17,33 @@ class ObjectOrientationCalculator:
         self.mask_lower_bound: Tuple[int, int, int] = (0, 65, 166)
         self.mask_upper_bound: Tuple[int, int, int] = (40, 120, 219)
         self.use_hsv: bool = False
+        self.tf_buffer = tf2_ros.Buffer()
+        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
+
+
+    def convert_depth_to_phys_coord_using_realsense(self, x, y, depth):  
+        _intrinsics = pyrealsense2.intrinsics()
+        # _intrinsics.width = cameraInfo.width
+        # _intrinsics.height = cameraInfo.height
+        # _intrinsics.ppx = cameraInfo.K[2]
+        # _intrinsics.ppy = cameraInfo.K[5]
+        # _intrinsics.fx = cameraInfo.K[0]
+        # _intrinsics.fy = cameraInfo.K[4]
+
+        _intrinsics.width = 640
+        _intrinsics.height = 480
+        _intrinsics.ppx = 320.894287109375
+        _intrinsics.ppy = 245.15847778320312
+        _intrinsics.fx = 604.5020141601562
+        _intrinsics.fy = 604.4981079101562
+
+
+        #_intrinsics.model = cameraInfo.distortion_model
+        _intrinsics.model  = pyrealsense2.distortion.none
+        _intrinsics.coeffs = [i for i in [0.0, 0.0, 0.0, 0.0, 0.0]]
+        result = pyrealsense2.rs2_deproject_pixel_to_point(_intrinsics, [x, y], depth/1000)  
+        #result[0]: right, result[1]: down, result[2]: forward
+        return result[2], -result[0], -result[1]
 
     def get_object_position(self, mask: np.ndarray, depth_image: np.ndarray):
         print("Mask (# nunzero pixels):")
@@ -35,9 +67,11 @@ class ObjectOrientationCalculator:
 
         # Get depth at the centroid
         z = depth_image[cy, cx]
-        print("depth of centroid:", z)
-        print(f"x: {cx}    y: {cy}    z: {z}")
-        return (cx, cy, z)
+        # print("depth of centroid:", z)
+        # print(f"x: {cx}    y: {cy}    z: {z}")
+        newX, newY, newZ = self.convert_depth_to_phys_coord_using_realsense(cx, cy, z)
+        # print(f"newx: {newX}    newy: {newY}    newz: {newZ}")
+        return (newX, newY, newZ)
 
     def calculate_relative_orientation(self, object_position):
         direction_vector = np.subtract(object_position, self.robot_position)
@@ -80,8 +114,20 @@ class ObjectOrientationCalculator:
 
         object_position = self.get_object_position(mask, depth_image)
         if object_position is None:
-            return 0, 0
-        pitch, yaw = self.calculate_relative_orientation(object_position)
+            return 0, 0, 0
+        # pitch, yaw = self.calculate_relative_orientation(object_position)
         # time.sleep(5)
+        # rospy.loginfo(marker_msg)
+        transform = self.tf_buffer.lookup_transform("map", "locobot/camera_aligned_depth_to_color_frame", rospy.Time())
 
-        return pitch, yaw
+        # Transform the marker coordinates to arm_base_link frame
+        point_in_camera = PointStamped()
+        # point_in_camera.header = marker_msg.header
+        # point_in_camera.point = Point(x=marker_msg.pose.position.x, y=marker_msg.pose.position.y, z=marker_msg.pose.position.z)
+        point_in_camera.point = Point(x=object_position[0], y=object_position[1], z=object_position[2])
+        # point_in_camera.header.frame_id = marker_msg.header.frame_id
+
+
+        point_in_base = tf2_geometry_msgs.do_transform_point(point_in_camera, transform)
+
+        print("POINT TRANSFORMED", point_in_base.point)

@@ -9,8 +9,9 @@ from SpheroHunter.msg import Tracker
 import time
 import cv2
 import numpy as np
+import pyrealsense2
 
-from sphero_locator import ObjectOrientationCalculator
+from calculator import ObjectOrientationCalculator
 
 class LocobotSpheroLocator:
     def __init__(self):
@@ -41,6 +42,8 @@ class LocobotSpheroLocator:
         self.robot_position = (data.pose.position.x, data.pose.position.y, data.pose.position.z)
 
 
+
+
 if __name__ == "__main__":
     rospy.init_node('sphero_location', anonymous=True)
     rospy.loginfo("Sphero locator has been started")
@@ -69,7 +72,8 @@ if __name__ == "__main__":
                 depth_image=locator.depth_image
             )
             if result is not None:
-                pitch, yaw = result
+                x, y, z = result
+                # pitch, yaw = result
                 msg = Tracker()
                 pub.publish(msg)
                 rate.sleep()

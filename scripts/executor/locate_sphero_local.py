@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import numpy as np
 import cv2
-from sphero_locator import ObjectOrientationCalculator
+from interbotix_ws.src.locobot.SpheroHunter.scripts.executor.calculator import ObjectOrientationCalculator
 from typing import Tuple, List
 import re
 import math
