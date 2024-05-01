@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import numpy as np
 import cv2
-from interbotix_ws.src.locobot.SpheroHunter.scripts.executor.calculator import ObjectOrientationCalculator
+from calculator import ObjectOrientationCalculator
 from typing import Tuple, List
 import re
 import math
@@ -67,6 +67,7 @@ if (args.mask_lower or args.mask_upper) and (args.hsv_lower or args.hsv_upper):
 color_image = cv2.imread("img_sphero_offset.jpg")
 depth_image = np.loadtxt("img_sphero_offset_depth.txt")
 calculator = ObjectOrientationCalculator()
+calculator.use_realsense = False
 if args.mask_lower or args.mask_upper:
     mask_lower_bound = args.mask_lower
     mask_upper_bound = args.mask_upper
@@ -97,8 +98,7 @@ elif args.hsv_lower or args.hsv_upper:
 result = calculator.process(color_image, depth_image)
 cv2.waitKey(0)
 if result is not None:
-    pitch, yaw = result
-    print("pitch:", pitch)
-    print("yaw:", yaw)
+    x, y, z = result
+    print("position:", (x, y, z))
 else:
     print("No Sphero found")

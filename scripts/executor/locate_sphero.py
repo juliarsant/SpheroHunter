@@ -3,13 +3,16 @@ import rospy
 
 # ROS Libraries
 from sensor_msgs.msg import Image
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped, Pose, Point, Quaternion, PointStamped
 from cv_bridge import CvBridge, CvBridgeError
 from SpheroHunter.msg import Tracker
 import time
 import cv2
 import numpy as np
 import pyrealsense2
+import tf2_ros
+import tf2_geometry_msgs #his helps in the tf2 transform error and exception
+
 
 from calculator import ObjectOrientationCalculator
 
@@ -41,8 +44,53 @@ class LocobotSpheroLocator:
     def pose_callback(self, data):
         self.robot_position = (data.pose.position.x, data.pose.position.y, data.pose.position.z)
 
+    
+    def get_tf_buffer(self):
+        if self.tf_buffer is None:
+            self.tf_buffer = tf2_ros.Buffer()
+            self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
+        return self.tf_buffer
+    
+    
+    def convert_depth_to_phys_coord_using_realsense(self, x, y, depth):  
+        _intrinsics = pyrealsense2.intrinsics()
+        # _intrinsics.width = cameraInfo.width
+        # _intrinsics.height = cameraInfo.height
+        # _intrinsics.ppx = cameraInfo.K[2]
+        # _intrinsics.ppy = cameraInfo.K[5]
+        # _intrinsics.fx = cameraInfo.K[0]
+        # _intrinsics.fy = cameraInfo.K[4]
+
+        _intrinsics.width = 640
+        _intrinsics.height = 480
+        _intrinsics.ppx = 320.894287109375
+        _intrinsics.ppy = 245.15847778320312
+        _intrinsics.fx = 604.5020141601562
+        _intrinsics.fy = 604.4981079101562
 
 
+        #_intrinsics.model = cameraInfo.distortion_model
+        _intrinsics.model  = pyrealsense2.distortion.none
+        _intrinsics.coeffs = [i for i in [0.0, 0.0, 0.0, 0.0, 0.0]]
+        result = pyrealsense2.rs2_deproject_pixel_to_point(_intrinsics, [x, y], depth/1000)  
+        #result[0]: right, result[1]: down, result[2]: forward
+        return result[2], -result[0], -result[1]
+
+    def convert_point_to_real_position(self, point):
+        tf_buffer = self.get_tf_buffer()
+        transform = tf_buffer.lookup_transform("map", "locobot/camera_aligned_depth_to_color_frame", rospy.Time())
+
+        # Transform the marker coordinates to arm_base_link frame
+        point_in_camera = PointStamped()
+        # point_in_camera.header = marker_msg.header
+        # point_in_camera.point = Point(x=marker_msg.pose.position.x, y=marker_msg.pose.position.y, z=marker_msg.pose.position.z)
+        point_in_camera.point = Point(x=object_position[0], y=object_position[1], z=object_position[2])
+        # point_in_camera.header.frame_id = marker_msg.header.frame_id
+
+
+        point_in_base = tf2_geometry_msgs.do_transform_point(point_in_camera, transform)
+
+        print("POINT TRANSFORMED", point_in_base.point)
 
 if __name__ == "__main__":
     rospy.init_node('sphero_location', anonymous=True)
