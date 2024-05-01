@@ -72,7 +72,8 @@ class LocobotSpheroLocator:
         return result[2], -result[0], -result[1]
 
     def convert_point_to_real_position(self, point):
-        x, y, depth = point
+        x, y, depth, _= point
+        
         x, y, depth = self.convert_depth_to_phys_coord_using_realsense(x, y, depth)
         transform = self.tf_buffer.lookup_transform("map", "locobot/camera_aligned_depth_to_color_frame", rospy.Time())
 
@@ -80,7 +81,7 @@ class LocobotSpheroLocator:
         point_in_camera = PointStamped()
         # point_in_camera.header = marker_msg.header
         # point_in_camera.point = Point(x=marker_msg.pose.position.x, y=marker_msg.pose.position.y, z=marker_msg.pose.position.z)
-        point_in_camera.point = Point(x=point[0], y=point[1], z=point[2])
+        point_in_camera.point = Point(x=x, y=y, z=depth)
         # point_in_camera.header.frame_id = marker_msg.header.frame_id
 
 
@@ -97,9 +98,9 @@ if __name__ == "__main__":
     start_time = time.time()
     display = False
     calculator = ObjectOrientationCalculator()
-    calculator.mask_lower_bound = (5, 50, 50)
-    calculator.mask_upper_bound = (15, 255, 255)
-    calculator.use_hsv = True
+    # calculator.mask_lower_bound = (5, 50, 50)
+    # calculator.mask_upper_bound = (15, 255, 255)
+    # calculator.use_hsv = True
     while not rospy.is_shutdown():
         if time.time() - start_time > 5:
             display = True
@@ -117,15 +118,27 @@ if __name__ == "__main__":
             )
             print("result:", result)
             if result is not None:
-                x, y, depth = result
+                x, y, depth, found = result
                 # img = cv2.circle(locator.color_image, (x, y), 3, (255,0,0), 4)
                 # cv2.imshow("Sphero location", img)
                 # cv2.waitKey(0)
                 # break
-                point = locator.convert_point_to_real_position(result)
-                print("point:", point)
-                # pitch, yaw = result
                 msg = Tracker()
+
+
+                if found:
+                    point = locator.convert_point_to_real_position(result)
+                    # print("point:", point)
+                    # pitch, yaw = result
+                    msg.x = point.x
+                    msg.y = point.y
+                else:
+                    msg.x = 0.0
+                    msg.y= 0.0
+                
+                msg.found= found
+                
+                # msg.
                 pub.publish(msg)
                 rate.sleep()
     

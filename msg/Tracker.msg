@@ -1,3 +1,5 @@
 Header header
 bool found
-float64 measurement
+float64 x
+float64 y
+

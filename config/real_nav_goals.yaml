@@ -49,4 +49,14 @@ real_nav_goals:
       y: -0.005
       z: -0.010
       w: 1.000
+  sphero:
+    position:
+      x: -0.401
+      y: -1.324
+      z: 0.037
+    orientation:
+      x: 0.002
+      y: -0.005
+      z: -0.010
+      w: 1.000
     

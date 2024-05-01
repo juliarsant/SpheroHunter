@@ -5,14 +5,19 @@ from typing import Union, Tuple
 from visualization_msgs.msg import Marker
 import rospy
 
+
+MIN_CONTOUR_AREA = 500
+
 class ObjectOrientationCalculator:
     def __init__(self):
         self.color_image = None
         self.depth_image = None
         self.robot_position = (0, 0, 0)
-        self.mask_lower_bound: Tuple[int, int, int] = (0, 65, 166)
-        self.mask_upper_bound: Tuple[int, int, int] = (40, 120, 219)
-        self.use_hsv: bool = False
+        self.mask_lower_bound: Tuple[int, int, int] = (5,50,150)
+        self.mask_upper_bound: Tuple[int, int, int] = (15,255,255)
+        self.mask_lower_bound = (5, 50, 50)
+        self.mask_upper_bound = (15, 255, 255)
+        self.use_hsv: bool = True
 
     def get_object_position(self, mask: np.ndarray, depth_image: np.ndarray):
         # Assuming mask is a binary image of the segmented object
@@ -31,28 +36,42 @@ class ObjectOrientationCalculator:
         # print(f"x: {cx}    y: {cy}    z: {z}")
         return (cx, cy, z)
 
-    def refine_mask(self, mask: np.ndarray) -> np.ndarray:
+    def refine_mask(self, mask: np.ndarray, color_image: np.ndarray) -> np.ndarray:
         """
         Filters all contours in the mask to only include the largest contour.
         """
         contours, _ = cv2.findContours(mask, mode=cv2.RETR_EXTERNAL, method=cv2.CHAIN_APPROX_NONE)
+        contours = [c for c in contours if cv2.contourArea(c) >= MIN_CONTOUR_AREA]
+        if len(contours) == 0:
+            return np.zeros_like(mask)
+        print("number of contours:", len(contours))
+        print("Contour areas:")
+        print("\n\t".join([
+            f"{i}: {cv2.contourArea(c)}" for i, c in enumerate(contours)
+        ]))
+        # c = cv2.drawContours(color_image, contours, -1, (0,255,0), 3)
+        # cv2.imwrite("contours.jpg", cv2.cvtColor(c, cv2.COLOR_BGR2HSV))
         largestContour = max(contours, key=cv2.contourArea)
         mask = np.zeros_like(mask)
         cv2.drawContours(mask, [largestContour], 0, (255, 255, 255), cv2.FILLED)
+        m = cv2.bitwise_and(color_image, color_image, mask = mask)
+        m = cv2.drawContours(cv2.cvtColor(m, cv2.COLOR_HSV2BGR), contours, -1, (0,255,0), 3)
+        cv2.imwrite("mask_contours.jpg", m)
+        cv2.imwrite("img.jpg", cv2.cvtColor(color_image, cv2.COLOR_HSV2BGR))
         return mask
 
     def process(self, color_image: Union[np.ndarray, None], depth_image: Union[np.ndarray, None]):
         if color_image is None or depth_image is None:
             return 0, 0, 0
         
-        if self.use_hsv:
-            color_image = cv2.cvtColor(color_image, cv2.COLOR_BGR2HSV)
-
-        # cv2.imwrite("img.jpg", self.color_image)
+        # cv2.imwrite("no_sphero.jpg", color_image)
         
         # np.savetxt("depth.txt", self.depth_image)
 
         # exit()
+        if self.use_hsv:
+            color_image = cv2.cvtColor(color_image, cv2.COLOR_BGR2HSV)
+
   
         # # Segment the object based on its color
         # lower_bound = np.array([255, 77, 0])  # Adjust these values
@@ -60,25 +79,31 @@ class ObjectOrientationCalculator:
         lower_bound = np.array(self.mask_lower_bound)  # Adjust these values
         upper_bound = np.array(self.mask_upper_bound)  # Adjust these values
         mask = cv2.inRange(color_image, lower_bound, upper_bound)
-        mask = self.refine_mask(mask)
-        masked_image = cv2.bitwise_and(color_image, color_image, mask = mask)
-        # combined = np.hstack([color_image, masked_image])
-        if self.use_hsv:
-            masked_image = cv2.cvtColor(masked_image, cv2.COLOR_HSV2BGR)
-            # combined = cv2.cvtColor(combined, cv2.COLOR_HSV2BGR)
+        mask = self.refine_mask(mask, color_image)
         
-        cv2.imwrite("masked.jpg", masked_image)
+        # cv2.imwrite("masked.jpg", masked_image)
         # # cv2.imshow('colored', color_image)
         # # cv2.imshow('masked image', masked_image)
         # cv2.imshow('image', combined)
         if np.count_nonzero(mask) == 0:
             print("Empty mask; Sphero not found")
-            return None
+            return 0, 0, 0, False
+        
+        masked_image = cv2.bitwise_and(color_image, color_image, mask = mask)
+        # combined = np.hstack([color_image, masked_image])
+        if self.use_hsv:
+            masked_image = cv2.cvtColor(masked_image, cv2.COLOR_HSV2BGR)
+            # combined = cv2.cvtColor(combined, cv2.COLOR_HSV2BGR)
 
         object_position = self.get_object_position(mask, depth_image)
         if object_position is None:
-            return 0, 0, 0
+            return 0, 0, 0, False
         # pitch, yaw = self.calculate_relative_orientation(object_position)
         # time.sleep(5)
         # rospy.loginfo(marker_msg)
-        return object_position
+        x, y, z = object_position
+        return x, y, z, True
+    
+
+    #publish message
+    #rostopic list on sphero locator
