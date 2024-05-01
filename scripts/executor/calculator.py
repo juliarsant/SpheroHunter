@@ -15,8 +15,6 @@ class ObjectOrientationCalculator:
         self.robot_position = (0, 0, 0)
         self.mask_lower_bound: Tuple[int, int, int] = (5,50,150)
         self.mask_upper_bound: Tuple[int, int, int] = (15,255,255)
-        self.mask_lower_bound = (5, 50, 50)
-        self.mask_upper_bound = (15, 255, 255)
         self.use_hsv: bool = True
 
     def get_object_position(self, mask: np.ndarray, depth_image: np.ndarray):
