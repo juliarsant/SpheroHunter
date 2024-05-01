@@ -23,6 +23,8 @@ class LocobotSpheroLocator:
         self.depth_image = None
         self.robot_position = (0, 0, 0)  # Default position
         self.sphero_located = False
+        self.tf_buffer = tf2_ros.Buffer()
+        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
 
         # ROS subscribers
         rospy.Subscriber("/locobot/camera/color/image_raw", Image, self.color_callback)
@@ -43,13 +45,6 @@ class LocobotSpheroLocator:
 
     def pose_callback(self, data):
         self.robot_position = (data.pose.position.x, data.pose.position.y, data.pose.position.z)
-
-    
-    def get_tf_buffer(self):
-        if self.tf_buffer is None:
-            self.tf_buffer = tf2_ros.Buffer()
-            self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
-        return self.tf_buffer
     
     
     def convert_depth_to_phys_coord_using_realsense(self, x, y, depth):  
@@ -77,20 +72,21 @@ class LocobotSpheroLocator:
         return result[2], -result[0], -result[1]
 
     def convert_point_to_real_position(self, point):
-        tf_buffer = self.get_tf_buffer()
-        transform = tf_buffer.lookup_transform("map", "locobot/camera_aligned_depth_to_color_frame", rospy.Time())
+        x, y, depth = point
+        x, y, depth = self.convert_depth_to_phys_coord_using_realsense(x, y, depth)
+        transform = self.tf_buffer.lookup_transform("map", "locobot/camera_aligned_depth_to_color_frame", rospy.Time())
 
         # Transform the marker coordinates to arm_base_link frame
         point_in_camera = PointStamped()
         # point_in_camera.header = marker_msg.header
         # point_in_camera.point = Point(x=marker_msg.pose.position.x, y=marker_msg.pose.position.y, z=marker_msg.pose.position.z)
-        point_in_camera.point = Point(x=object_position[0], y=object_position[1], z=object_position[2])
+        point_in_camera.point = Point(x=point[0], y=point[1], z=point[2])
         # point_in_camera.header.frame_id = marker_msg.header.frame_id
 
 
         point_in_base = tf2_geometry_msgs.do_transform_point(point_in_camera, transform)
 
-        print("POINT TRANSFORMED", point_in_base.point)
+        return point_in_base.point
 
 if __name__ == "__main__":
     rospy.init_node('sphero_location', anonymous=True)
@@ -119,8 +115,15 @@ if __name__ == "__main__":
                 color_image=locator.color_image,
                 depth_image=locator.depth_image
             )
+            print("result:", result)
             if result is not None:
-                x, y, z = result
+                x, y, depth = result
+                # img = cv2.circle(locator.color_image, (x, y), 3, (255,0,0), 4)
+                # cv2.imshow("Sphero location", img)
+                # cv2.waitKey(0)
+                # break
+                point = locator.convert_point_to_real_position(result)
+                print("point:", point)
                 # pitch, yaw = result
                 msg = Tracker()
                 pub.publish(msg)

@@ -2,8 +2,9 @@
 import cv2
 import numpy as np
 from typing import Union, Tuple
-from visualization_msgs.msg import Marker
-import rospy
+
+
+SPHERO_BOLT_SIZE_MM = 73
 
 class ObjectOrientationCalculator:
     def __init__(self):
@@ -15,35 +16,42 @@ class ObjectOrientationCalculator:
         self.use_hsv: bool = False
 
     def get_object_position(self, mask: np.ndarray, depth_image: np.ndarray):
+        contours, heirarchy = cv2.findContours(mask, mode=cv2.RETR_EXTERNAL, method=cv2.CHAIN_APPROX_NONE)
+        largestContour = max(contours, key=cv2.contourArea)
+        img_height, img_width = mask.shape
+        center_px_x = img_width // 2
+        x, y, w, h = cv2.boundingRect(largestContour)
+        print("Bounding box of largest contour:")
+        print("x:", x)
+        print("y:", y)
+        print("width:", w)
+        print("height:", h)
+        px_to_mm_scale = SPHERO_BOLT_SIZE_MM / w
+        print(f"1px = {px_to_mm_scale}mm")
+        x_offset = (x - center_px_x) * px_to_mm_scale
+        print("X offset:", x_offset)
         # Assuming mask is a binary image of the segmented object
         moments = cv2.moments(mask)
-        # print("moments:")
-        # print(moments)
         if moments['m00'] == 0.0:
-            # print("NO MOMENTS FOUND")
             return None
         cx = int(moments['m10'] / moments['m00'])
         cy = int(moments['m01'] / moments['m00'])
 
         # Get depth at the centroid
         z = depth_image[cy, cx]
-        # print("depth of centroid:", z)
-        # print(f"x: {cx}    y: {cy}    z: {z}")
+        print("depth of centroid:", z)
+        print(f"x: {cx}    y: {cy}    z: {z}")
         return (cx, cy, z)
 
-    def refine_mask(self, mask: np.ndarray) -> np.ndarray:
-        """
-        Filters all contours in the mask to only include the largest contour.
-        """
-        contours, _ = cv2.findContours(mask, mode=cv2.RETR_EXTERNAL, method=cv2.CHAIN_APPROX_NONE)
-        largestContour = max(contours, key=cv2.contourArea)
-        mask = np.zeros_like(mask)
-        cv2.drawContours(mask, [largestContour], 0, (255, 255, 255), cv2.FILLED)
-        return mask
+    def calculate_relative_orientation(self, object_position):
+        direction_vector = np.subtract(object_position, self.robot_position)
+        pitch = np.arctan2(direction_vector[2], direction_vector[1])
+        yaw = np.arctan2(direction_vector[0], direction_vector[1])
+        # print(f"Pitch: {pitch}")
+        # print(f"Yaw: {yaw}")
+        return pitch, yaw
 
-    def process(self, color_image: Union[np.ndarray, None], depth_image: Union[np.ndarray, None]):
-        if color_image is None or depth_image is None:
-            return 0, 0, 0
+            return 0, 0
         
         if self.use_hsv:
             color_image = cv2.cvtColor(color_image, cv2.COLOR_BGR2HSV)
@@ -60,14 +68,11 @@ class ObjectOrientationCalculator:
         lower_bound = np.array(self.mask_lower_bound)  # Adjust these values
         upper_bound = np.array(self.mask_upper_bound)  # Adjust these values
         mask = cv2.inRange(color_image, lower_bound, upper_bound)
-        mask = self.refine_mask(mask)
-        masked_image = cv2.bitwise_and(color_image, color_image, mask = mask)
+        # np.set_printoptions(threshold=np.inf, linewidth=np.inf)
+        # masked_image = cv2.bitwise_and(color_image, color_image, mask = mask)
         # combined = np.hstack([color_image, masked_image])
-        if self.use_hsv:
-            masked_image = cv2.cvtColor(masked_image, cv2.COLOR_HSV2BGR)
-            # combined = cv2.cvtColor(combined, cv2.COLOR_HSV2BGR)
-        
-        cv2.imwrite("masked.jpg", masked_image)
+        # if self.use_hsv:
+        #     combined = cv2.cvtColor(combined, cv2.COLOR_HSV2BGR)
         # # cv2.imshow('colored', color_image)
         # # cv2.imshow('masked image', masked_image)
         # cv2.imshow('image', combined)
@@ -77,8 +82,9 @@ class ObjectOrientationCalculator:
 
         object_position = self.get_object_position(mask, depth_image)
         if object_position is None:
-            return 0, 0, 0
-        # pitch, yaw = self.calculate_relative_orientation(object_position)
+            return 0, 0
+        pitch, yaw = self.calculate_relative_orientation(object_position)
         # time.sleep(5)
-        # rospy.loginfo(marker_msg)
-        return object_position
+
+        return pitch, yaw
+
