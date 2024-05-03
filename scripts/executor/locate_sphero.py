@@ -6,12 +6,27 @@ from sensor_msgs.msg import Image
 from geometry_msgs.msg import PoseStamped, Pose, Point, Quaternion, PointStamped
 from cv_bridge import CvBridge, CvBridgeError
 from SpheroHunter.msg import Tracker
+from typing import Union
 import time
 import cv2
 import numpy as np
 import pyrealsense2
 import tf2_ros
 import tf2_geometry_msgs #his helps in the tf2 transform error and exception
+import argparse
+
+
+parser = argparse.ArgumentParser(
+    prog="locate_sphero"
+)
+
+parser.add_argument(
+    "--video",
+    action="store_true",
+    help="Whether to save a video of the Locobot's camera, with detected contours, to the file search.avi",
+)
+
+args = parser.parse_args()
 
 
 from calculator import ObjectOrientationCalculator
@@ -97,10 +112,10 @@ if __name__ == "__main__":
     rate = rospy.Rate(10)
     start_time = time.time()
     display = False
-    calculator = ObjectOrientationCalculator()
+    calculator = ObjectOrientationCalculator(args.video)
+
     # calculator.mask_lower_bound = (5, 50, 50)
     # calculator.mask_upper_bound = (15, 255, 255)
-    # calculator.use_hsv = True
     while not rospy.is_shutdown():
         if time.time() - start_time > 5:
             display = True
