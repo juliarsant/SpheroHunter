@@ -132,9 +132,11 @@ if __name__ == "__main__":
                     # pitch, yaw = result
                     msg.x = point.x
                     msg.y = point.y
+                    msg.depth = depth
                 else:
                     msg.x = 0.0
                     msg.y= 0.0
+                    msg.depth = 0.0
                 
                 msg.found= found
                 

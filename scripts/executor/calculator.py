@@ -6,15 +6,15 @@ from visualization_msgs.msg import Marker
 import rospy
 
 
-MIN_CONTOUR_AREA = 500
+MIN_CONTOUR_AREA = 200
 
 class ObjectOrientationCalculator:
     def __init__(self):
         self.color_image = None
         self.depth_image = None
         self.robot_position = (0, 0, 0)
-        self.mask_lower_bound: Tuple[int, int, int] = (5,50,150)
-        self.mask_upper_bound: Tuple[int, int, int] = (15,255,255)
+        self.mask_lower_bound: Tuple[int, int, int] = (10,50,200)
+        self.mask_upper_bound: Tuple[int, int, int] = (20,255,255)
         self.use_hsv: bool = True
 
     def get_object_position(self, mask: np.ndarray, depth_image: np.ndarray):
@@ -88,6 +88,10 @@ class ObjectOrientationCalculator:
             return 0, 0, 0, False
         
         masked_image = cv2.bitwise_and(color_image, color_image, mask = mask)
+        min_color = np.min(np.nonzero(masked_image))
+        max_color = np.max(masked_image)
+        print("min color:", min_color)
+        print("max color:", max_color)
         # combined = np.hstack([color_image, masked_image])
         if self.use_hsv:
             masked_image = cv2.cvtColor(masked_image, cv2.COLOR_HSV2BGR)
