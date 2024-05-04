@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import rospy
 from SpheroHunter.msg import Tracker
 from locobot_learning.srv import Approach
@@ -8,8 +9,13 @@ from actionlib.simple_action_client import SimpleActionClient
 from collections import deque 
 import time
 import numpy as np
-import pygame
 import sys
+from enum import Enum
+from cmd_vel_publisher import publish_velocity
+
+class LocobotState(Enum):
+    SEARCHING = 1
+    PURSUING = 2
 
 
 class Brain:
@@ -26,8 +32,8 @@ class Brain:
                 "position" : {"x": -0.717, "y": -1.062, "z": 0.032},
                 "orientation" : {"x": 0.001, "y": -0.006, "z": 0.104, "w": 0.995}  },
             "sphero": {
-                "position" : {"x": 0, "y": 0, "z": 0},
-                "orientation": {"x": 0, "y": 0, "z": 0, "w": 0}
+                "position" : {"x": -1.748, "y": -1.234, "z": 0.022},
+                "orientation": {"x": -0.002, "y": -0.003, "z": -0.025, "w": 1.000}
             }
         }
         #Subscribe to sphero location info
@@ -36,6 +42,8 @@ class Brain:
         self.moving_to_sphero = False
         self.depth = 1000
         self.past_sphero = self.GOAL_LOCATIONS["sphero"]
+        self.state = LocobotState.SEARCHING
+        self.follow_dist = 675
 
         #Locations tracks the predefined locations in map to explore
         self.locations = deque()
@@ -49,6 +57,7 @@ class Brain:
         if data.found:
             self.depth = data.depth
             self.sphero_located = True
+            self.state = LocobotState.PURSUING
             self.GOAL_LOCATIONS["sphero"] = {
                 "position" : {"x": data.x, "y": data.y, "z": 0.0},
                 #This needs to be the current orientation of the robot
@@ -59,6 +68,7 @@ class Brain:
             self.sphero_located = False
             self.depth = 1000
             # print("Sphero Not Located")
+            self.state = LocobotState.SEARCHING
 
     def step1(self):
         #If sphero not found, go to locations
@@ -70,6 +80,7 @@ class Brain:
 
             #Move to desired location using service
             self.move(location)
+            publish_velocity(0, 0.5)
 
         #Sphero is found, move there
         self.past_sphero = self.GOAL_LOCATIONS["sphero"]
@@ -136,7 +147,7 @@ class Brain:
             if (time.time() - start_time > 20 
                 or distance > 0.5 
                 or (self.moving_to_sphero == False and self.sphero_located == True)
-                or self.depth <675):
+                or self.depth < self.follow_dist):
                 print("Cancelling goal!")
                 print("Value log")
                 print(f"Sphero distance {distance}")
@@ -148,7 +159,8 @@ class Brain:
                 break
 
 if __name__ == "__main__":
-    rospy.init_node('sphero_location', anonymous=True)
+    rospy.init_node('brain', anonymous=True)
+    rospy.loginfo("Starting brain...")
     brain = Brain()
     while not rospy.is_shutdown():
         #Run tracking sphero sitting in map

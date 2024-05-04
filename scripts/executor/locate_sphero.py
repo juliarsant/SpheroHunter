@@ -16,17 +16,17 @@ import tf2_geometry_msgs #his helps in the tf2 transform error and exception
 import argparse
 
 
-parser = argparse.ArgumentParser(
-    prog="locate_sphero"
-)
+# parser = argparse.ArgumentParser(
+#     prog="locate_sphero"
+# )
 
-parser.add_argument(
-    "--video",
-    action="store_true",
-    help="Whether to save a video of the Locobot's camera, with detected contours, to the file search.avi",
-)
+# parser.add_argument(
+#     "--video",
+#     action="store_true",
+#     help="Whether to save a video of the Locobot's camera, with detected contours, to the file search.avi",
+# )
 
-args = parser.parse_args()
+# args = parser.parse_args()
 
 
 from calculator import ObjectOrientationCalculator
@@ -112,7 +112,7 @@ if __name__ == "__main__":
     rate = rospy.Rate(10)
     start_time = time.time()
     display = False
-    calculator = ObjectOrientationCalculator(args.video)
+    calculator = ObjectOrientationCalculator(False)
 
     # calculator.mask_lower_bound = (5, 50, 50)
     # calculator.mask_upper_bound = (15, 255, 255)

@@ -6,15 +6,17 @@ import sys
 
 def publish_velocity(linear_vel, angular_vel, duration=10):
     # Initialize the ROS node
-    rospy.init_node('cmd_vel_publisher_node')
+    # rospy.init_node('brain_twist')
     
     # Create a publisher for the /locobot/cmd_vel topic
-    cmd_vel_pub = rospy.Publisher('/locobot/cmd_vel', Twist, queue_size=10)
+    cmd_vel_pub = rospy.Publisher('/mobile_base/cmd_vel', Twist, queue_size=10)
     
     # Construct the Twist message
     twist_msg = Twist()
     twist_msg.linear.x = linear_vel
     twist_msg.angular.z = angular_vel
+
+    print(f"Spinning with lin and ang {linear_vel}    {angular_vel}")
     
     # Publish the message for the specified duration
     rate = rospy.Rate(10)  # 10Hz
