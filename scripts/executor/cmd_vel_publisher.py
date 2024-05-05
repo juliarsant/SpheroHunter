@@ -4,7 +4,7 @@ import rospy
 from geometry_msgs.msg import Twist
 import sys
 
-def publish_velocity(linear_vel, angular_vel, duration=10):
+def publish_velocity(linear_vel, angular_vel, duration=0.5):
     # Initialize the ROS node
     # rospy.init_node('brain_twist')
     
@@ -15,8 +15,6 @@ def publish_velocity(linear_vel, angular_vel, duration=10):
     twist_msg = Twist()
     twist_msg.linear.x = linear_vel
     twist_msg.angular.z = angular_vel
-
-    print(f"Spinning with lin and ang {linear_vel}    {angular_vel}")
     
     # Publish the message for the specified duration
     rate = rospy.Rate(10)  # 10Hz

@@ -80,7 +80,11 @@ class Brain:
 
             #Move to desired location using service
             self.move(location)
-            publish_velocity(0, 0.5)
+            #Spin around for time period or until sphero found
+            start_time = time.time()
+            print("Spinning")
+            while time.time() - start_time < 10 and self.sphero_located == False:
+                publish_velocity(0, 0.75, 0.5)
 
         #Sphero is found, move there
         self.past_sphero = self.GOAL_LOCATIONS["sphero"]
