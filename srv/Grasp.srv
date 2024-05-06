@@ -1,4 +1,0 @@
-std_msgs/String target
----
-bool success
-std_msgs/String message

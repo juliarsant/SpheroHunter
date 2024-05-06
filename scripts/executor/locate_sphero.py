@@ -16,17 +16,17 @@ import tf2_geometry_msgs #his helps in the tf2 transform error and exception
 import argparse
 
 
-# parser = argparse.ArgumentParser(
-#     prog="locate_sphero"
-# )
+parser = argparse.ArgumentParser(
+    prog="locate_sphero"
+)
 
-# parser.add_argument(
-#     "--video",
-#     action="store_true",
-#     help="Whether to save a video of the Locobot's camera, with detected contours, to the file search.avi",
-# )
+parser.add_argument(
+    "--video",
+    action="store_true",
+    help="Whether to save a video of the Locobot's camera, with detected contours, to the file search.avi",
+)
 
-# args = parser.parse_args()
+args = parser.parse_args()
 
 
 from calculator import ObjectOrientationCalculator
@@ -63,31 +63,23 @@ class LocobotSpheroLocator:
     
     
     def convert_depth_to_phys_coord_using_realsense(self, x, y, depth):  
+        #https://medium.com/@yasuhirachiba/converting-2d-image-coordinates-to-3d-coordinates-using-ros-intel-realsense-d435-kinect-88621e8e733a
         _intrinsics = pyrealsense2.intrinsics()
-        # _intrinsics.width = cameraInfo.width
-        # _intrinsics.height = cameraInfo.height
-        # _intrinsics.ppx = cameraInfo.K[2]
-        # _intrinsics.ppy = cameraInfo.K[5]
-        # _intrinsics.fx = cameraInfo.K[0]
-        # _intrinsics.fy = cameraInfo.K[4]
-
         _intrinsics.width = 640
         _intrinsics.height = 480
         _intrinsics.ppx = 320.894287109375
         _intrinsics.ppy = 245.15847778320312
         _intrinsics.fx = 604.5020141601562
         _intrinsics.fy = 604.4981079101562
-
-
-        #_intrinsics.model = cameraInfo.distortion_model
         _intrinsics.model  = pyrealsense2.distortion.none
         _intrinsics.coeffs = [i for i in [0.0, 0.0, 0.0, 0.0, 0.0]]
         result = pyrealsense2.rs2_deproject_pixel_to_point(_intrinsics, [x, y], depth/1000)  
-        #result[0]: right, result[1]: down, result[2]: forward
         return result[2], -result[0], -result[1]
 
     def convert_point_to_real_position(self, point):
         x, y, depth, _= point
+        pixel_x = x
+        print(pixel_x)
         
         x, y, depth = self.convert_depth_to_phys_coord_using_realsense(x, y, depth)
         transform = self.tf_buffer.lookup_transform("map", "locobot/camera_aligned_depth_to_color_frame", rospy.Time())
@@ -102,7 +94,7 @@ class LocobotSpheroLocator:
 
         point_in_base = tf2_geometry_msgs.do_transform_point(point_in_camera, transform)
 
-        return point_in_base.point
+        return point_in_base.point, pixel_x
 
 if __name__ == "__main__":
     rospy.init_node('sphero_location', anonymous=True)
@@ -112,7 +104,7 @@ if __name__ == "__main__":
     rate = rospy.Rate(10)
     start_time = time.time()
     display = False
-    calculator = ObjectOrientationCalculator(False)
+    calculator = ObjectOrientationCalculator(args.video)
 
     # calculator.mask_lower_bound = (5, 50, 50)
     # calculator.mask_upper_bound = (15, 255, 255)
@@ -142,16 +134,18 @@ if __name__ == "__main__":
 
 
                 if found:
-                    point = locator.convert_point_to_real_position(result)
+                    point, pixel_x = locator.convert_point_to_real_position(result)
                     # print("point:", point)
                     # pitch, yaw = result
                     msg.x = point.x
                     msg.y = point.y
                     msg.depth = depth
+                    msg.pix_x = pixel_x
                 else:
                     msg.x = 0.0
                     msg.y= 0.0
                     msg.depth = 0.0
+                    msg.pix_x = 0
                 
                 msg.found= found
                 

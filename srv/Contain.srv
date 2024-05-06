@@ -1,4 +1,0 @@
-string obj
-string container
----
-bool container_contains_obj
