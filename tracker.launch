@@ -1,3 +1,10 @@
+<!-- 
+    Launch file that launches the brain_LOP tracker, locate_sphero, and all
+    background ROS nodes used by the Locobot
+
+ -->
+
+
 <launch>
     <arg name="robot_name"                          default="locobot"/>
     <arg name="robot_model"                         default="locobot_wx200" />
@@ -90,9 +97,7 @@
         <remap from="/collision_object"               to="/$(arg robot_name)/collision_object"/>
     </node>
 
-    <!--     
-        ros controller
-    -->
+
     <include file="$(find interbotix_xslocobot_moveit)/launch/move_group.launch" ns="$(arg robot_name)">
         <arg name="robot_model"                       value="$(arg robot_model)"/>
         <arg name="robot_name"                        value="$(arg robot_name)"/>
@@ -102,8 +107,6 @@
         <arg name="publish_monitored_planning_scene"  value="true" />
     </include>
 
-    <!-- <include file="$(find gpd_ros)/launch/ur5.launch" />
-    <include file="$(find darknet_ros)/launch/darknet_ros.launch" /> -->
 
     <rosparam file="$(find interbotix_xslocobot_ros_control)/config/$(arg dof)dof_controllers.yaml" command="load" ns="$(arg robot_name)"/>
     <rosparam file="$(find interbotix_xslocobot_ros_control)/config/hardware.yaml" command="load" ns="$(arg robot_name)"/>
@@ -127,22 +130,19 @@
         ns="$(arg robot_name)">
     </node>
 
-    <!-- <node
+    <!-- custom nodes needed to track Sphero -->
+
+    <node
         name="brain"
         pkg="SpheroHunter"
-        type="brain.py">
-    </node> -->
+        type="brain_LOP.py">
+    </node>
 
-    <!-- <node
+    <node
         name="locate"
         pkg="SpheroHunter"
         type="locate_sphero.py">
-    </node> -->
+    </node>
 
 
-
-    <!-- <include if="$(arg use_moveit_rviz)" file="$(find interbotix_xslocobot_moveit)/launch/moveit_rviz.launch" ns="$(arg robot_name)">
-        <arg name="robot_name"                        value="$(arg robot_name)"/>
-        <arg name="config"                            value="true"/>
-    </include> -->
 </launch>

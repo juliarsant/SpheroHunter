@@ -13,15 +13,24 @@ import sys
 from enum import Enum
 from cmd_vel_publisher import publish_velocity
 
+'''
+    Brain Basic will listen to the locate sphero messages published at /sphero/tracker
+    and approach the Sphero at the given location until the Locobot is within
+    0.6 meters. Once the Sphero is lost it will go through the pre-mapped locations
+    to try to find the Sphero again.
+'''
+
+#Simple class to define Locobot state during search
 class LocobotState(Enum):
     SEARCHING = 1
     PURSUING = 2
 
-
+#Main class the performs all logic for tracking and navigating the map
 class Brain:
     def __init__(self):
         self.GOAL_LOCATIONS = {
-
+            #Found by driving Locobot to desired points and running 
+            #rosrun tf tf_echo /map locobot/base_link
             "home" : {
                 "position" : {"x": -0.057, "y": -0.028, "z": 0.030},
                 "orientation" : {"x": 0.0, "y": 0.0, "z": 0.0, "w":1.0}  },
@@ -60,18 +69,17 @@ class Brain:
             self.state = LocobotState.PURSUING
             self.GOAL_LOCATIONS["sphero"] = {
                 "position" : {"x": data.x, "y": data.y, "z": 0.0},
-                #This needs to be the current orientation of the robot
                 "orientation" : {"x": 0.0, "y": 0.0, "z": 0.0, "w":1.0}
             }
             print("Sphero Was Located")
         else:
             self.sphero_located = False
             self.depth = 1000
-            # print("Sphero Not Located")
             self.state = LocobotState.SEARCHING
 
+    #Main function to move between locations based on if/where Sphero located
     def step1(self):
-        #If sphero not found, go to locations
+        #If sphero not found, go to pre-mapped locations
         while self.sphero_located == False:
             self.moving_to_sphero = False
             #Go to first location in queue, add location back to end of queue for later
@@ -91,17 +99,17 @@ class Brain:
         self.moving_to_sphero = True
         self.move("sphero")
 
+    #Clear cost map function to clean map while navigating
     def clear_costmaps(self):
         rospy.wait_for_service('/locobot/move_base/clear_costmaps')
         try:
             clear_costmaps = rospy.ServiceProxy('/locobot/move_base/clear_costmaps', Empty)
             clear_costmaps()
-            # rospy.loginfo("Cleared the cost maps")
 
         except rospy.ServiceException as e:
             rospy.logerr("Service call failed: %s", e)
 
-
+    #Function to move to the desired location
     def move(self, goal_name: str):
         #Position and orientation of goal
         position = self.GOAL_LOCATIONS[goal_name]["position"]
@@ -112,14 +120,14 @@ class Brain:
         print(f"Orientation to move {orientation}")
 
 
-    # Call the service to clear costmaps
+        # Call the service to clear costmaps
         self.clear_costmaps()
             
+        #Start the move base client to send Locobot to location
         client = SimpleActionClient('/locobot/move_base', MoveBaseAction)
         client.wait_for_server()
 
         pose_dict = self.GOAL_LOCATIONS[goal_name]
-        # rospy.loginfo("Sending goal: %s", pose_dict)
 
         goal = MoveBaseGoal()
         goal.target_pose.header.frame_id = 'map'
@@ -137,6 +145,7 @@ class Brain:
         while state !=3:
             distance = 0
 
+            #Update Sphero location
             if self.sphero_located:
                 past_position = self.past_sphero["position"]
                 x_past = past_position["x"]
@@ -148,6 +157,10 @@ class Brain:
                 print(f"Depth to sphero {self.depth}")
 
             state = client.get_state()
+            #Break if following conditions met
+            # More than 20 seconds, distance Sphero moved greater than 0.5 meters
+            # Wasn't moving to sphero previously but you just located the sphero
+            # The locobot is within the defined following distance
             if (time.time() - start_time > 20 
                 or distance > 0.5 
                 or (self.moving_to_sphero == False and self.sphero_located == True)
@@ -169,14 +182,4 @@ if __name__ == "__main__":
     while not rospy.is_shutdown():
         #Run tracking sphero sitting in map
         brain.step1()
-
-
-"""
-Step 1: Move to each quadrant until sphero is found
-If sphero found, go to sphero until distance thershold
-
-Step 2: Follow slow sphero
-
-Step 3: Full hide and seek
-"""
 

@@ -4,11 +4,13 @@ import rospy
 from geometry_msgs.msg import Twist
 import sys
 
+'''
+    Publishes the twist commands so the locobot can turn.
+    The commands are published to /mobile_base/cmd_vel to interact
+    directly with the motor
+'''
 def publish_velocity(linear_vel, angular_vel, duration=0.5):
-    # Initialize the ROS node
-    # rospy.init_node('brain_twist')
-    
-    # Create a publisher for the /locobot/cmd_vel topic
+    # Create a publisher for the /mobile_base/cmd_vel topic
     cmd_vel_pub = rospy.Publisher('/mobile_base/cmd_vel', Twist, queue_size=10)
     
     # Construct the Twist message
@@ -22,13 +24,3 @@ def publish_velocity(linear_vel, angular_vel, duration=0.5):
     while rospy.Time.now() < end_time:
         cmd_vel_pub.publish(twist_msg)
         rate.sleep()
-
-if __name__ == '__main__':
-    if len(sys.argv) < 3:
-        print("Usage: cmd_vel_publisher.py <linear_velocity> <angular_velocity>")
-        sys.exit(1)
-
-    linear_velocity = float(sys.argv[1])
-    angular_velocity = float(sys.argv[2])
-    
-    publish_velocity(linear_velocity, angular_velocity)
