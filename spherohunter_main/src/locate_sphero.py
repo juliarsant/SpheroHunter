@@ -5,7 +5,7 @@ import rospy
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import PoseStamped, Pose, Point, Quaternion, PointStamped
 from cv_bridge import CvBridge, CvBridgeError
-from SpheroHunter.msg import Tracker
+from spherohunter_msgs.msg import Tracker
 from typing import Union
 import time
 import cv2

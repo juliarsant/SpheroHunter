@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import rospy
-from locoskeleton_msgs.msg import Tracker
+from spherohunter_msgs.msg import Tracker
 from locobot_learning.srv import Approach
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from geometry_msgs.msg import PoseStamped, Point, Quaternion
